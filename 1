@@ -113,9 +113,7 @@ ContinueLoop:
     Set pivotTable1 = wsPivot.PivotTables.Add(PivotCache:=pivotCache1, TableDestination:=wsPivot.Range("A3"), TableName:="Pivot_CaseID_Sum")
     With pivotTable1
         .PivotFields("Case ID").Orientation = xlRowField
-        .PivotFields("Time taken").Orientation = xlDataField
-        .PivotFields("Time taken").Function = xlSum
-        .PivotFields("Time taken").Name = "Total Time"
+        .AddDataField .PivotFields("Time taken"), "Total Time", xlSum
     End With
     wsPivot.Range("A1").Value = "Pivot 1: Total Time by Case ID"
 
@@ -126,9 +124,7 @@ ContinueLoop:
     Set pivotTable2 = wsPivot.PivotTables.Add(PivotCache:=pivotCache2, TableDestination:=wsPivot.Range("G3"), TableName:="Pivot_Description_Avg")
     With pivotTable2
         .PivotFields("Description").Orientation = xlRowField
-        .PivotFields("Time taken").Orientation = xlDataField
-        .PivotFields("Time taken").Function = xlAverage
-        .PivotFields("Time taken").Name = "Average Time"
+        .AddDataField .PivotFields("Time taken"), "Average Time", xlAverage
     End With
     wsPivot.Range("G1").Value = "Pivot 2: Average Time by Description"
 
