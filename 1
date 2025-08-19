@@ -114,6 +114,11 @@ ContinueLoop:
     With pivotTable1
         .PivotFields("Case ID").Orientation = xlRowField
         .AddDataField .PivotFields("Time taken"), "Total Time", xlSum
+        On Error Resume Next
+        .CalculatedFields.Add "HRS", "= 'Total Time' / 60"
+        On Error GoTo 0
+        .AddDataField .CalculatedFields("HRS"), "HRS", xlSum
+        .DataFields("HRS").NumberFormat = "0.00"
     End With
     wsPivot.Range("A1").Value = "Pivot 1: Total Time by Case ID"
 
@@ -125,6 +130,11 @@ ContinueLoop:
     With pivotTable2
         .PivotFields("Description").Orientation = xlRowField
         .AddDataField .PivotFields("Time taken"), "Average Time", xlAverage
+        On Error Resume Next
+        .CalculatedFields.Add "HRS", "= 'Average Time' / 60"
+        On Error GoTo 0
+        .AddDataField .CalculatedFields("HRS"), "HRS", xlSum
+        .DataFields("HRS").NumberFormat = "0.00"
     End With
     wsPivot.Range("G1").Value = "Pivot 2: Average Time by Description"
 
