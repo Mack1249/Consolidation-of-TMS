@@ -13,8 +13,9 @@ Sub ConsolidateExcelFiles_WithErrorLog()
     Dim caseID As String
     Dim description As String
     Dim timeTaken As Variant
-    Dim errorFound As Boolean
-    
+    Dim errorMsg As String
+    Dim cellError As Boolean
+
     ' Prompt user to select folder
     With Application.FileDialog(msoFileDialogFolderPicker)
         .Title = "Select Folder with Excel Files"
@@ -24,10 +25,10 @@ Sub ConsolidateExcelFiles_WithErrorLog()
             Exit Sub
         End If
     End With
-    
+
     Application.ScreenUpdating = False
     Application.DisplayAlerts = False
-    
+
     ' Create new workbook for consolidation
     Set wbDest = Workbooks.Add
     Set wsDest = wbDest.Sheets(1)
@@ -38,66 +39,71 @@ Sub ConsolidateExcelFiles_WithErrorLog()
     wsLog.Range("A1:B1").Value = Array("File Name", "Error Description")
     lastRowDest = 2
     lastRowLog = 2
-    
+
     ' Loop through all .xlsx files in the folder
     fileName = Dir(folderPath & "*.xlsx")
     Do While fileName <> ""
         If Left(fileName, 2) <> "~$" Then
-            errorFound = False
+            errorMsg = ""
+            cellError = False
             On Error GoTo FileOpenError
             Set wbSource = Workbooks.Open(folderPath & fileName, ReadOnly:=True)
             Set wsSource = wbSource.Sheets(1) ' Always Sheet1
-            
+            On Error GoTo 0
+
             caseID = wsSource.Range("B1").Value
             If Trim(caseID) = "" Then
                 wsLog.Cells(lastRowLog, 1).Value = fileName
                 wsLog.Cells(lastRowLog, 2).Value = "Missing Case ID in B1"
                 lastRowLog = lastRowLog + 1
-                errorFound = True
             End If
-            
+
             For i = 4 To 27 ' F4:F27
-                On Error GoTo CellError
+                On Error Resume Next
                 timeTaken = wsSource.Cells(i, 6).Value ' Column F
-                If IsError(timeTaken) Then
+                If Err.Number <> 0 Then
                     wsLog.Cells(lastRowLog, 1).Value = fileName
-                    wsLog.Cells(lastRowLog, 2).Value = "Error in cell F" & i
+                    wsLog.Cells(lastRowLog, 2).Value = "Error reading cell F" & i
                     lastRowLog = lastRowLog + 1
-                    errorFound = True
-                ElseIf IsNumeric(timeTaken) And timeTaken > 0 And Not errorFound Then
-                    description = wsSource.Cells(i, 1).Value ' Column A
-                    wsDest.Cells(lastRowDest, 1).Value = caseID
-                    wsDest.Cells(lastRowDest, 2).Value = description
-                    wsDest.Cells(lastRowDest, 3).Value = timeTaken
-                    lastRowDest = lastRowDest + 1
+                    Err.Clear
+                    On Error GoTo 0
+                    cellError = True
+                    ' Continue to next row
+                Else
+                    On Error GoTo 0
+                    If IsNumeric(timeTaken) And timeTaken > 0 And Trim(caseID) <> "" Then
+                        description = wsSource.Cells(i, 1).Value ' Column A
+                        wsDest.Cells(lastRowDest, 1).Value = caseID
+                        wsDest.Cells(lastRowDest, 2).Value = description
+                        wsDest.Cells(lastRowDest, 3).Value = timeTaken
+                        lastRowDest = lastRowDest + 1
+                    End If
                 End If
-                On Error GoTo 0
             Next i
-            
+
             wbSource.Close SaveChanges:=False
         End If
         fileName = Dir
-        Continue Do
+        ' Loop continues naturally
+        GoTo ContinueLoop
+
 FileOpenError:
         wsLog.Cells(lastRowLog, 1).Value = fileName
         wsLog.Cells(lastRowLog, 2).Value = "Could not open file or missing Sheet1"
         lastRowLog = lastRowLog + 1
+        Err.Clear
         On Error GoTo 0
-        Resume Next
-CellError:
-        wsLog.Cells(lastRowLog, 1).Value = fileName
-        wsLog.Cells(lastRowLog, 2).Value = "Error reading cell F" & i
-        lastRowLog = lastRowLog + 1
-        On Error GoTo 0
-        Resume Next
+        ' Loop continues naturally
+
+ContinueLoop:
     Loop
-    
+
     Application.ScreenUpdating = True
     Application.DisplayAlerts = True
-    
+
     ' Save the consolidated workbook in the same folder
     wbDest.SaveAs folderPath & "Consolidated.xlsx"
     wbDest.Close SaveChanges:=False
-    
+
     MsgBox "Consolidation complete! File saved as 'Consolidated.xlsx' in the selected folder.", vbInformation
 End Sub
