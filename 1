@@ -80,7 +80,7 @@ Sub ConsolidateExcelFiles_WithErrorLog_AndPivots()
                         wsDest.Cells(lastRowDest, 1).Value = caseID
                         wsDest.Cells(lastRowDest, 2).Value = description
                         wsDest.Cells(lastRowDest, 3).Value = timeTaken
-                        wsDest.Cells(lastRowDest, 4).Value = timeTaken / 60 ' New column: Time taken in HRS
+                        wsDest.Cells(lastRowDest, 4).Value = Round(timeTaken / 60, 2) ' Two decimal points
                         lastRowDest = lastRowDest + 1
                     End If
                 End If
@@ -101,6 +101,9 @@ FileOpenError:
 ContinueLoop:
     Loop
 
+    ' Format "Time taken in HRS" column to two decimal places
+    wsDest.Columns(4).NumberFormat = "0.00"
+
     ' Add PivotTables sheet
     Set wsPivot = wbDest.Sheets.Add(After:=wsLog)
     wsPivot.Name = "PivotTables"
@@ -111,27 +114,27 @@ ContinueLoop:
     Dim dataRange As Range
     Set dataRange = wsDest.Range("A1:D" & lastDataRow)
 
-    ' Create Pivot 1: Sum Time by Case ID
+    ' Create Pivot 1: Sum Time in HRS by Case ID
     Dim pivotCache1 As PivotCache
     Dim pivotTable1 As PivotTable
     Set pivotCache1 = wbDest.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=dataRange)
-    Set pivotTable1 = wsPivot.PivotTables.Add(PivotCache:=pivotCache1, TableDestination:=wsPivot.Range("A3"), TableName:="Pivot_CaseID_Sum")
+    Set pivotTable1 = wsPivot.PivotTables.Add(PivotCache:=pivotCache1, TableDestination:=wsPivot.Range("A3"), TableName:="Pivot_CaseID_SumHRS")
     With pivotTable1
         .PivotFields("Case ID").Orientation = xlRowField
-        .AddDataField .PivotFields("Time taken"), "Total Time", xlSum
+        .AddDataField .PivotFields("Time taken in HRS"), "Total Time (HRS)", xlSum
     End With
-    wsPivot.Range("A1").Value = "Pivot 1: Total Time by Case ID"
+    wsPivot.Range("A1").Value = "Pivot 1: Total Time (HRS) by Case ID"
 
-    ' Create Pivot 2: Avg Time by Description
+    ' Create Pivot 2: Avg Time in HRS by Description
     Dim pivotCache2 As PivotCache
     Dim pivotTable2 As PivotTable
     Set pivotCache2 = wbDest.PivotCaches.Create(SourceType:=xlDatabase, SourceData:=dataRange)
-    Set pivotTable2 = wsPivot.PivotTables.Add(PivotCache:=pivotCache2, TableDestination:=wsPivot.Range("G3"), TableName:="Pivot_Description_Avg")
+    Set pivotTable2 = wsPivot.PivotTables.Add(PivotCache:=pivotCache2, TableDestination:=wsPivot.Range("G3"), TableName:="Pivot_Description_AvgHRS")
     With pivotTable2
         .PivotFields("Description").Orientation = xlRowField
-        .AddDataField .PivotFields("Time taken"), "Average Time", xlAverage
+        .AddDataField .PivotFields("Time taken in HRS"), "Average Time (HRS)", xlAverage
     End With
-    wsPivot.Range("G1").Value = "Pivot 2: Average Time by Description"
+    wsPivot.Range("G1").Value = "Pivot 2: Average Time (HRS) by Description"
 
     Application.ScreenUpdating = True
     Application.DisplayAlerts = True
